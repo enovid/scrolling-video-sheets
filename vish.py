@@ -3,7 +3,7 @@ import cv2 as cv
 VIDEO_PATH = 'sample_data/sample.avi'
 
 
-def video_frames(path, gridsize=(3, 3), outputsize=(1920, 1080), save=False):
+def create_video_sheet(path, gridsize=(3, 3), outputsize=(1920, 1080), save=False):
     NROWS, NCOLS = gridsize
     NSTREAMS = NROWS * NCOLS + 1
     PARENT_WIDTH, PARENT_HEIGHT = outputsize
@@ -87,4 +87,4 @@ def video_frames(path, gridsize=(3, 3), outputsize=(1920, 1080), save=False):
     for s in streams:
         s.release()
 
-video_frames(VIDEO_PATH, gridsize=(2, 2), outputsize=(1920, 1080), save=True)
+create_video_sheet(VIDEO_PATH, gridsize=(2, 2), outputsize=(1920, 1080), save=True)
