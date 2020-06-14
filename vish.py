@@ -1,9 +1,14 @@
 import numpy as np
 import cv2 as cv
+import argparse, os
+
+
+GRID_WIDTH  = 5
+GRID_HEIGHT = 5
+PREVIEW = False
 VIDEO_PATH = 'sample_data/sample.avi'
 
-
-def create_video_sheet(path, gridsize=(3, 3), outputsize=(1920, 1080), save=False):
+def create_video_sheet(path, gridsize=(3, 3), outputsize=(1920, 1080), preview=False, save=False):
     NROWS, NCOLS = gridsize
     NSTREAMS = NROWS * NCOLS + 1
     PARENT_WIDTH, PARENT_HEIGHT = outputsize
@@ -12,6 +17,7 @@ def create_video_sheet(path, gridsize=(3, 3), outputsize=(1920, 1080), save=Fals
     # Initialize video streams
     streams = [cv.VideoCapture(path) for _ in range(NSTREAMS)]
 
+    import pudb; pu.db
     # Get video properties
     fps = int(streams[0].get(cv.CAP_PROP_FPS))
     frame_count = streams[0].get(cv.CAP_PROP_FRAME_COUNT)
@@ -36,6 +42,9 @@ def create_video_sheet(path, gridsize=(3, 3), outputsize=(1920, 1080), save=Fals
 
     scroll_offset = 0 
     while scroll_offset < TILE_WIDTH: # The first tile starts off left of the screen
+        print(f'scroll_offset: {scroll_offset}')
+        print(f'TILE_WIDTH: {TILE_WIDTH}')
+        print(f'{int(scroll_offset/TILE_WIDTH*100)}%')
         # Read in the frames
         frames = []
         for s in streams: 
@@ -77,14 +86,27 @@ def create_video_sheet(path, gridsize=(3, 3), outputsize=(1920, 1080), save=Fals
         # Construct final frame
         if len(rows) == NROWS:
             final_frame = np.vstack(rows)
+            if save: 
+                output_video.write(final_frame)
+
+        # Show live preview
+        if PREVIEW: 
             cv.imshow('frame', final_frame)
-            if save: output_video.write(final_frame)
-        if cv.waitKey(ms_per_frame) & 0xFF == ord('q'):
-            cv.destroyAllWindows()
+            if cv.waitKey(ms_per_frame) & 0xFF == ord('q'):
+                cv.destroyAllWindows()
 
         scroll_offset += px_scroll_per_frame
 
     for s in streams:
         s.release()
 
-create_video_sheet(VIDEO_PATH, gridsize=(2, 2), outputsize=(1920, 1080), save=True)
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('paths', metavar='filepath', type=str, nargs='+', help='path to input video')
+    args = parser.parse_args()
+    print(args)
+    print(args.paths)
+    for path in args.paths:
+        create_video_sheet(path, gridsize=(GRID_HEIGHT, GRID_WIDTH), outputsize=(1920, 1080), preview=PREVIEW, save=True)
+    print('Done.')
