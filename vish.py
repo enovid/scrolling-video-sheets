@@ -53,15 +53,16 @@ def create_video_sheet(path, gridsize=(3, 3), outputsize=(1920, 1080), preview=F
     # Calculate scroll speed
     ms_per_px = ms_per_tile // TILE_WIDTH
     ms_per_frame = 1000 // fps
-    # How many pixels to scroll per frame so that we move `FRAME_WIDTH` pixels in `ms_per_tile`
+    # How many pixels to scroll per frame of the output video so that we move
+    # `FRAME_WIDTH` pixels in `ms_per_tile`
     px_scroll_per_frame = ms_per_frame / ms_per_px
 
     if save:
         codec = cv.VideoWriter_fourcc('D', 'I', 'V', 'X')
         output_video = cv.VideoWriter(f'{savedir}/{Path(path).stem}_vish{NROWS}x{NCOLS}.mp4', codec, fps, (PARENT_WIDTH, PARENT_HEIGHT))
 
-    def proc_next_frame(stream):
-        retval, frame = s.read()
+    def proc_next_frame(id, stream):
+        retval, frame = stream.read()
         if not retval:
             return
 
@@ -69,17 +70,14 @@ def create_video_sheet(path, gridsize=(3, 3), outputsize=(1920, 1080), preview=F
         frame = resize_frame_cpu(frame=frame, w=TILE_WIDTH, h=TILE_HEIGHT)
 
         # Add time stamp to frame
-        current_ms = s.get(cv.CAP_PROP_POS_MSEC)
+        current_ms = stream.get(cv.CAP_PROP_POS_MSEC)
         timestamp = timestamp_ms2str(ms=current_ms)
         cv.putText(frame, timestamp, (20, TILE_HEIGHT - 10), cv.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
-        frames.append(frame)
-        return frame
+        q.put((id, frame))
 
 
-    pool = Pool()
-    taskqueue = Queue()
+    q = Queue()
 
-    frames = []
     scroll_offset = 0 
     with alive_bar(manual=True) as bar:
         while scroll_offset < TILE_WIDTH: # The top left tile starts off left of the screen
@@ -87,12 +85,14 @@ def create_video_sheet(path, gridsize=(3, 3), outputsize=(1920, 1080), preview=F
             completion_pct = '%.2f'%(scroll_offset/TILE_WIDTH)
             bar(completion_pct)
 
-            # Read in the frames
+            # Process the frames (resize and add timestamp)
             frames = []
-            pool.map(proc_next_frame, streams)
-            # for s in streams: 
-                # frame = proc_next_frame(s)
-                # frames.append(frame)
+            for i, stream in enumerate(streams):
+                p = Process(target=proc_next_frame, args=(i, stream))
+                p.start()
+            # Join processes
+            # Retrieve processed frames from queue
+            # Sort frames by id
 
             # Concatenate the frames required for a single frame of the output video into one long frame
             full_frame = np.hstack(frames)
