@@ -1,2 +1,3 @@
 *.mp4
 *.mkv
+!sample_data/BigBuckBunny1080p.mp4
