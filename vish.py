@@ -75,11 +75,14 @@ def create_video_sheet(path, gridsize=(3, 3), outputsize=(1920, 1080), preview=F
         frames.append(frame)
         return frame
 
-    frames = []
+
     pool = Pool()
+    taskqueue = Queue()
+
+    frames = []
     scroll_offset = 0 
     with alive_bar(manual=True) as bar:
-        while scroll_offset < TILE_WIDTH: # The first tile starts off left of the screen
+        while scroll_offset < TILE_WIDTH: # The top left tile starts off left of the screen
             # Progress bar
             completion_pct = '%.2f'%(scroll_offset/TILE_WIDTH)
             bar(completion_pct)
